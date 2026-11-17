@@ -1,0 +1,50 @@
+name: Нарезка клипов
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Ссылка на стрим/VOD (Twitch или YouTube)"
+        required: true
+      clips:
+        description: "Сколько клипов"
+        default: "5"
+      clip_len:
+        description: "Длина клипа, сек"
+        default: "40"
+      vertical:
+        description: "Вертикальный формат 9:16"
+        type: boolean
+        default: true
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Установка
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip install -U "yt-dlp[default]" faster-whisper numpy
+
+      - name: Нарезка
+        env:
+          VIDEO_URL: ${{ inputs.url }}
+          CLIPS: ${{ inputs.clips }}
+          CLIP_LEN: ${{ inputs.clip_len }}
+          VERTICAL: ${{ inputs.vertical }}
+        run: python clipper.py
+
+      - name: Сохранить клипы
+        uses: actions/upload-artifact@v4
+        with:
+          name: clips
+          path: output/*.mp4
+          retention-days: 7
